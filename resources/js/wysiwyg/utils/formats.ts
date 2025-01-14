@@ -1,43 +1,48 @@
-import {$isQuoteNode, HeadingNode, HeadingTagType} from "@lexical/rich-text";
-import {$createTextNode, $getSelection, $insertNodes, LexicalEditor, LexicalNode} from "lexical";
+import {
+    $createParagraphNode,
+    $createTextNode,
+    $getSelection,
+    $insertNodes,
+    $isParagraphNode,
+    LexicalEditor,
+    LexicalNode
+} from "lexical";
 import {
     $getBlockElementNodesInSelection,
     $getNodeFromSelection,
-    $insertNewBlockNodeAtSelection, $selectionContainsNodeType,
+    $insertNewBlockNodeAtSelection, $selectionContainsNodeType, $selectSingleNode,
     $toggleSelectionBlockNodeType,
     getLastSelection
 } from "./selection";
-import {$createCustomHeadingNode, $isCustomHeadingNode} from "../nodes/custom-heading";
-import {$createCustomParagraphNode, $isCustomParagraphNode} from "../nodes/custom-paragraph";
-import {$createCustomQuoteNode} from "../nodes/custom-quote";
-import {$createCodeBlockNode, $isCodeBlockNode, $openCodeEditorForNode, CodeBlockNode} from "../nodes/code-block";
-import {$createCalloutNode, $isCalloutNode, CalloutCategory} from "../nodes/callout";
-import {insertList, ListNode, ListType, removeList} from "@lexical/list";
-import {$isCustomListNode} from "../nodes/custom-list";
+import {$createCodeBlockNode, $isCodeBlockNode, $openCodeEditorForNode, CodeBlockNode} from "@lexical/rich-text/LexicalCodeBlockNode";
+import {$createCalloutNode, $isCalloutNode, CalloutCategory} from "@lexical/rich-text/LexicalCalloutNode";
+import {$isListNode, insertList, ListNode, ListType, removeList} from "@lexical/list";
 import {$createLinkNode, $isLinkNode} from "@lexical/link";
+import {$createHeadingNode, $isHeadingNode, HeadingTagType} from "@lexical/rich-text/LexicalHeadingNode";
+import {$createQuoteNode, $isQuoteNode} from "@lexical/rich-text/LexicalQuoteNode";
 
 const $isHeaderNodeOfTag = (node: LexicalNode | null | undefined, tag: HeadingTagType) => {
-    return $isCustomHeadingNode(node) && (node as HeadingNode).getTag() === tag;
+    return $isHeadingNode(node) && node.getTag() === tag;
 };
 
 export function toggleSelectionAsHeading(editor: LexicalEditor, tag: HeadingTagType) {
     editor.update(() => {
         $toggleSelectionBlockNodeType(
             (node) => $isHeaderNodeOfTag(node, tag),
-            () => $createCustomHeadingNode(tag),
+            () => $createHeadingNode(tag),
         )
     });
 }
 
 export function toggleSelectionAsParagraph(editor: LexicalEditor) {
     editor.update(() => {
-        $toggleSelectionBlockNodeType($isCustomParagraphNode, $createCustomParagraphNode);
+        $toggleSelectionBlockNodeType($isParagraphNode, $createParagraphNode);
     });
 }
 
 export function toggleSelectionAsBlockquote(editor: LexicalEditor) {
     editor.update(() => {
-        $toggleSelectionBlockNodeType($isQuoteNode, $createCustomQuoteNode);
+        $toggleSelectionBlockNodeType($isQuoteNode, $createQuoteNode);
     });
 }
 
@@ -45,7 +50,7 @@ export function toggleSelectionAsList(editor: LexicalEditor, type: ListType) {
     editor.getEditorState().read(() => {
         const selection = $getSelection();
         const listSelected = $selectionContainsNodeType(selection, (node: LexicalNode | null | undefined): boolean => {
-            return $isCustomListNode(node) && (node as ListNode).getListType() === type;
+            return $isListNode(node) && (node as ListNode).getListType() === type;
         });
 
         if (listSelected) {
@@ -65,9 +70,19 @@ export function formatCodeBlock(editor: LexicalEditor) {
             editor.update(() => {
                 const codeBlock = $createCodeBlockNode();
                 codeBlock.setCode(selection?.getTextContent() || '');
-                $insertNewBlockNodeAtSelection(codeBlock, true);
+
+                const selectionNodes = $getBlockElementNodesInSelection(selection);
+                const firstSelectionNode = selectionNodes[0];
+                const extraNodes = selectionNodes.slice(1);
+                if (firstSelectionNode) {
+                    firstSelectionNode.replace(codeBlock);
+                    extraNodes.forEach(n => n.remove());
+                } else {
+                    $insertNewBlockNodeAtSelection(codeBlock, true);
+                }
+
                 $openCodeEditorForNode(editor, codeBlock);
-                codeBlock.selectStart();
+                $selectSingleNode(codeBlock);
             });
         } else {
             $openCodeEditorForNode(editor, codeBlock);

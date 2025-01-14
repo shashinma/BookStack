@@ -1,23 +1,23 @@
 import {
+    $createParagraphNode,
     $getRoot,
     $isDecoratorNode,
-    $isElementNode,
+    $isElementNode, $isRootNode,
     $isTextNode,
     ElementNode,
     LexicalEditor,
     LexicalNode
 } from "lexical";
 import {LexicalNodeMatcher} from "../nodes";
-import {$createCustomParagraphNode} from "../nodes/custom-paragraph";
 import {$generateNodesFromDOM} from "@lexical/html";
 import {htmlToDom} from "./dom";
-import {NodeHasAlignment, NodeHasInset} from "../nodes/_common";
+import {NodeHasAlignment, NodeHasInset} from "lexical/nodes/common";
 import {$findMatchingParent} from "@lexical/utils";
 
 function wrapTextNodes(nodes: LexicalNode[]): LexicalNode[] {
     return nodes.map(node => {
         if ($isTextNode(node)) {
-            const paragraph = $createCustomParagraphNode();
+            const paragraph = $createParagraphNode();
             paragraph.append(node);
             return paragraph;
         }
@@ -84,7 +84,7 @@ export function $getNearestBlockNodeForCoords(editor: LexicalEditor, x: number, 
 
 export function $getNearestNodeBlockParent(node: LexicalNode): LexicalNode|null {
     const isBlockNode = (node: LexicalNode): boolean => {
-        return ($isElementNode(node) || $isDecoratorNode(node)) && !node.isInline();
+        return ($isElementNode(node) || $isDecoratorNode(node)) && !node.isInline() && !$isRootNode(node);
     };
 
     if (isBlockNode(node)) {

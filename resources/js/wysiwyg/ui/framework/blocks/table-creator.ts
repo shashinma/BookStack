@@ -1,6 +1,5 @@
 import {EditorUiElement} from "../core";
 import {$createTableNodeWithDimensions} from "@lexical/table";
-import {CustomTableNode} from "../../../nodes/custom-table";
 import {$insertNewBlockNodeAtSelection} from "../../../utils/selection";
 import {el} from "../../../utils/dom";
 
@@ -74,8 +73,12 @@ export class EditorTableCreator extends EditorUiElement {
             return;
         }
 
+        const targetColWidth = Math.min(Math.round(840 / columns), 240);
+        const colWidths = Array(columns).fill(targetColWidth + 'px');
+
         this.getContext().editor.update(() => {
-            const table = $createTableNodeWithDimensions(rows, columns, false) as CustomTableNode;
+            const table = $createTableNodeWithDimensions(rows, columns, false);
+            table.setColWidths(colWidths);
             $insertNewBlockNodeAtSelection(table);
         });
     }
